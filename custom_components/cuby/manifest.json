@@ -1,7 +1,7 @@
 {
   "domain": "cuby",
   "name": "Cuby (MQTT)",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "documentation": "https://github.com/mtflud/homeassistant-cuby-mqtt",
   "issue_tracker": "https://github.com/mtflud/homeassistant-cuby-mqtt/issues",
   "codeowners": ["@mtflud"],

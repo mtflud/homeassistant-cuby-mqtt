@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Add a Cuby device",
-        "description": "Enter the Cuby device ID (visible on the Cuby app or printed on the device). The device must be publishing to your MQTT broker on the `cuby/<id>/...` topics.",
+        "description": "Enter the Cuby device ID (visible on the Cuby app or printed on the device). The device must be publishing to your MQTT broker on the cuby/[device-id]/... topics.",
         "data": {
           "device_id": "Device ID",
           "protocol": "Protocol (advanced, optional)"

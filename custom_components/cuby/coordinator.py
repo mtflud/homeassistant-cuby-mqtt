@@ -125,6 +125,10 @@ class CubyDevice:
 
         if self._debounce_task and not self._debounce_task.done():
             self._debounce_task.cancel()
+            try:
+                await self._debounce_task
+            except asyncio.CancelledError:
+                pass
 
     async def async_send(self, command: dict[str, Any]) -> None:
         """Queue a command; commands sent within a short window are merged into one publish."""
