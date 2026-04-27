@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a Cuby device",
+        "description": "Enter the Cuby device ID (visible on the Cuby app or printed on the device). The device must be publishing to your MQTT broker on the `cuby/<id>/...` topics.",
+        "data": {
+          "device_id": "Device ID",
+          "protocol": "Protocol (advanced, optional)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This Cuby device is already set up.",
+      "mqtt_required": "The Home Assistant MQTT integration must be configured before adding a Cuby device."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Cuby options",
+        "description": "Choose which optional entities to expose for this device.",
+        "data": {
+          "display_switch": "Expose Display switch",
+          "turbo_switch": "Expose Turbo switch",
+          "long_switch": "Expose Long switch",
+          "eco_switch": "Expose Eco switch",
+          "humidity_sensor": "Expose Humidity sensor"
+        }
+      }
+    }
+  }
+}
