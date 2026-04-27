@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 from typing import Any
 
 from homeassistant.components import mqtt
@@ -13,6 +14,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import (
     COMMAND_DEBOUNCE_S,
+    INTER_DEVICE_GAP_S,
     SIGNAL_DEVICE_UPDATE,
     TOPIC_IN_CMD,
     TOPIC_OUT_DATA,
@@ -26,6 +28,33 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 
+class CubyPublishGate:
+    """Serialize MQTT publishes across all Cuby devices.
+
+    The Cuby firmware ACKs commands on `out/cmd` and updates `out/state` to
+    look successful, but silently drops the IR transmission to the AC when
+    multiple devices receive commands within a few hundred ms. Holding a
+    shared lock and enforcing a minimum gap between publishes works around
+    that bug; the original Homebridge plugin had the same issue.
+    """
+
+    def __init__(self, min_interval_s: float) -> None:
+        self._lock = asyncio.Lock()
+        self._last_publish_at = 0.0
+        self._min_interval_s = min_interval_s
+
+    async def __aenter__(self) -> "CubyPublishGate":
+        await self._lock.acquire()
+        wait = self._last_publish_at + self._min_interval_s - time.monotonic()
+        if wait > 0:
+            await asyncio.sleep(wait)
+        return self
+
+    async def __aexit__(self, *_exc: object) -> None:
+        self._last_publish_at = time.monotonic()
+        self._lock.release()
+
+
 class CubyDevice:
     """Holds state for one Cuby device and brokers MQTT traffic for it."""
 
@@ -35,11 +64,13 @@ class CubyDevice:
         entry_id: str,
         device_id: str,
         protocol: int | None,
+        publish_gate: CubyPublishGate,
     ) -> None:
         self.hass = hass
         self.entry_id = entry_id
         self.device_id = device_id
         self.protocol = protocol
+        self._gate = publish_gate
 
         # AC state — what the AC is set to (mirrors ACState in the Homebridge plugin)
         self.ac_state: dict[str, Any] = {
@@ -105,7 +136,7 @@ class CubyDevice:
                 self.hass,
                 TOPIC_OUT_DATA.format(device_id=self.device_id),
                 _message_received,
-                qos=0,
+                qos=1,
             )
         )
         self._unsub_callbacks.append(
@@ -113,7 +144,7 @@ class CubyDevice:
                 self.hass,
                 TOPIC_OUT_STATE.format(device_id=self.device_id),
                 _message_received,
-                qos=0,
+                qos=1,
             )
         )
 
@@ -151,7 +182,8 @@ class CubyDevice:
         topic = TOPIC_IN_CMD.format(device_id=self.device_id)
         _LOGGER.debug("Cuby %s -> %s: %s", self.device_id, topic, payload)
 
-        await mqtt.async_publish(self.hass, topic, json.dumps(payload), qos=0)
+        async with self._gate:
+            await mqtt.async_publish(self.hass, topic, json.dumps(payload), qos=1)
 
         # Optimistic update so the UI reflects the change immediately
         for key, value in payload.items():

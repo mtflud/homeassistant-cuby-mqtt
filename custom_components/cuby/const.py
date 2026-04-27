@@ -30,6 +30,11 @@ MAX_TEMPERATURE_C: Final = 30
 # Command debounce window (seconds) — batches rapid characteristic changes into a single publish
 COMMAND_DEBOUNCE_S: Final = 0.1
 
+# Minimum gap between MQTT publishes across ALL Cuby devices.
+# The Cuby firmware ACKs concurrent commands successfully but drops the IR
+# transmission to the AC, so we serialize publishes globally.
+INTER_DEVICE_GAP_S: Final = 0.35
+
 # Dispatcher signal template
 SIGNAL_DEVICE_UPDATE: Final = "cuby_device_update_{device_id}"
 
